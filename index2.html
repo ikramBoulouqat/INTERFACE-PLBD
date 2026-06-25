@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  :root {
+    --bg:#f0eee7; --panel:#ffffff; --panel-2:#faf8f3; --ink:#1d1b16; --ink-soft:#6e685c;
+    --ink-faint:#a39c8d; --line:#e7e2d8; --line-2:#d8d2c5;
+    --green:#2f8f5b; --green-ink:#216a44; --red:#bf432e; --brown:#876841; --amber:#a9772a;
+  }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; height:4px; border-radius:4px; background:var(--line-2); }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--green); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer; }
+  select{ font-family:inherit; }
+  @keyframes recblink { 0%,49%{opacity:1} 50%,100%{opacity:.15} }
+  @keyframes ringpulse { 0%{ transform:scale(.7); opacity:.7 } 70%{ transform:scale(1.6); opacity:0 } 100%{ opacity:0 } }
+  @keyframes dronepulse { 0%{ transform:translate(-50%,-50%) scale(.6); opacity:.6 } 80%{ transform:translate(-50%,-50%) scale(1.9); opacity:0 } 100%{opacity:0} }
+  @keyframes scan { 0%{ top:-10% } 100%{ top:110% } }
+  @keyframes dash { to { stroke-dashoffset:-32 } }
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" style="display:flex; height:100vh; width:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-size:14px;">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="width:236px; flex:none; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:18px 14px;">
+    <div style="display:flex; align-items:center; gap:11px; padding:4px 8px 18px;">
+      <!-- LOGO : depose logo.png dans le dossier (ou change le src) -->
+      <img src="/logo.jpeg" alt="logo" style="width:32px; height:32px; flex:none; object-fit:contain; border-radius:7px;">
+      <div>
+        <div style="font-weight:700; font-size:15px; letter-spacing:.04em;">AEROAID</div>
+        <div style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); letter-spacing:.16em; margin-top:2px;"></div>
+      </div>
+    </div>
+
+    <nav style="display:flex; flex-direction:column; gap:3px;">
+      <button onClick="{{ goHome }}" style="{{ navStyle.home }}" style-hover="background:var(--panel-2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
+        <span>Accueil</span>
+      </button>
+      <button onClick="{{ goOverview }}" style="{{ navStyle.overview }}" style-hover="background:var(--panel-2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+        <span>Vue d'ensemble</span>
+      </button>
+      <button onClick="{{ goLive }}" style="{{ navStyle.live }}" style-hover="background:var(--panel-2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"></circle><path d="M10 8.5l5.5 3.5L10 15.5z" fill="currentColor" stroke="none"></path></svg>
+        <span>Flux en direct</span>
+      </button>
+      <button onClick="{{ goDetect }}" style="{{ navStyle.detect }}" style-hover="background:var(--panel-2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="4 3"></rect><circle cx="12" cy="12" r="3.2"></circle></svg>
+        <span>Détection</span>
+      </button>
+      <button onClick="{{ goGis }}" style="{{ navStyle.gis }}" style-hover="background:var(--panel-2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg>
+        <span>Carte SIG</span>
+      </button>
+      <button onClick="{{ goPath }}" style="{{ navStyle.path }}" style-hover="background:var(--panel-2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="5.5" r="2.5"></circle><path d="M5.5 16C5.5 10 18.5 12 18.5 8"></path></svg>
+        <span>Planificateur</span>
+      </button>
+    </nav>
+
+    <div style="margin-top:auto; padding-top:14px;">
+      <div style="background:var(--panel-2); border:1px solid var(--line); border-radius:11px; padding:13px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.08em;">{{ callSign }}</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; font:500 10px/1 'IBM Plex Mono',monospace; color:var(--green-ink); letter-spacing:.06em;"><span style="width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(47,143,91,.18);"></span>EN LIGNE</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); width:46px;">BATT</span>
+          <div style="flex:1; height:6px; background:var(--line); border-radius:4px; overflow:hidden;"><div style="{{ battStyle }}"></div></div>
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;">{{ batteryStr }}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); width:46px;">SIGNL</span>
+          <div style="flex:1; height:6px; background:var(--line); border-radius:4px; overflow:hidden;"><div style="{{ sigStyle }}"></div></div>
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;">{{ signalStr }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+
+    <!-- TOPBAR -->
+    <header style="height:62px; flex:none; border-bottom:1px solid var(--line); background:var(--panel); display:flex; align-items:center; padding:0 22px; gap:18px;">
+      <div style="min-width:0;">
+        <div style="font-weight:600; font-size:16px; line-height:1.1;">{{ pageTitle }}</div>
+        <div style="font:500 11px/1 'IBM Plex Mono',monospace; color:var(--ink-soft); margin-top:3px; letter-spacing:.02em;">{{ pageSub }}</div>
+      </div>
+
+      <div style="margin-left:auto; display:flex; align-items:center; gap:16px;">
+        <div style="text-align:right;">
+          <div style="font:600 14px/1 'IBM Plex Mono',monospace; letter-spacing:.03em;">{{ timeStr }} <span style="color:var(--ink-faint); font-weight:500;">UTC</span></div>
+          <div style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); margin-top:3px;">{{ coords }}</div>
+        </div>
+        <div style="width:1px; height:30px; background:var(--line);"></div>
+        <div style="display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:3px;">
+          <button onClick="{{ themeLight }}" style="{{ themeStyle.light }}">Clair</button>
+          <button onClick="{{ themeSlate }}" style="{{ themeStyle.slate }}">Ardoise</button>
+          <button onClick="{{ themeField }}" style="{{ themeStyle.field }}">Terrain</button>
+        </div>
+        <div style="width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--brown),#5d4427); color:#fff; display:flex; align-items:center; justify-content:center; font:600 12px/1 'IBM Plex Mono',monospace;">OP</div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main style="flex:1; overflow:auto; padding:22px;">
+
+      <!-- ===== HOME ===== -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1320px; margin:0 auto;">
+        <!-- hero -->
+        <section style="position:relative; overflow:hidden; border-radius:16px; padding:42px 44px; color:#fff; background:linear-gradient(135deg, var(--hero-1), var(--hero-2) 65%, var(--hero-3));">
+          <!-- IMAGE D'ACCUEIL : depose hero.jpg dans le dossier. opacity = intensite (0 = invisible, 1 = pleine). -->
+          <img src="/hero.jpg" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.35;">
+          <div style="position:absolute; right:-60px; top:-60px; width:280px; height:280px; border-radius:50%; background:rgba(255,255,255,.08);"></div>
+          <div style="position:absolute; right:70px; bottom:-90px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.06);"></div>
+          <div style="position:relative;">
+            <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); padding:6px 12px; border-radius:20px; font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--hero-title); margin-bottom:20px;"><span style="width:8px;height:8px;border-radius:50%;background:#fff;animation:recblink 1.6s infinite;"></span>{{ callSign }} · MISSION ACTIVE</div>
+            <h1 style="margin:0 0 12px; font-size:38px; font-weight:700; letter-spacing:-.01em; line-height:1.05; color:var(--hero-title);">AEROAID</h1>
+            <p style="margin:0 0 28px; font-size:16px; max-width:560px; color:rgba(255,255,255,.88); line-height:1.5;">Télémétrie drone en direct, détection de personnes en temps réel et routage géospatial — une console opérateur pour la conscience situationnelle sur le terrain.</p>
+            <div style="display:flex; gap:12px;">
+              <button onClick="{{ goOverview }}" style="padding:13px 22px; border:none; border-radius:10px; background:#fff; color:var(--hero-1); font:600 14px/1 'IBM Plex Sans',sans-serif; cursor:pointer;">Ouvrir le tableau de bord</button>
+              <button onClick="{{ goLive }}" style="padding:13px 22px; border:1px solid rgba(255,255,255,.5); border-radius:10px; background:transparent; color:#fff; font:600 14px/1 'IBM Plex Sans',sans-serif; cursor:pointer;">Voir le flux en direct</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- status strip -->
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:16px;">
+          <div style="background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--green); border-radius:12px; padding:16px 18px;"><div style="font:700 24px/1 'IBM Plex Mono',monospace; color:var(--green-ink);">EN LIGNE</div><div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">Liaison drone · {{ signalStr }} signal</div></div>
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;"><div style="font:700 24px/1 'IBM Plex Mono',monospace;">{{ detCountStr }}</div><div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">personnes détectées</div></div>
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;"><div style="font:700 24px/1 'IBM Plex Mono',monospace;">{{ altStr }}</div><div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">altitude · {{ speedStr }}</div></div>
+          <div style="background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--red); border-radius:12px; padding:16px 18px;"><div style="font:700 24px/1 'IBM Plex Mono',monospace; color:var(--red);">{{ riskProb }}</div><div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">probabilité d'impact</div></div>
+        </div>
+
+        <!-- feature cards -->
+        <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin:28px 0 14px;">MODULES</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+          <button onClick="{{ goLive }}" style="text-align:left; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px;" style-hover="border-color:var(--green)">
+            <div style="width:44px; height:44px; border-radius:11px; background:rgba(47,143,91,.12); color:var(--green-ink); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"></circle><path d="M10 8.5l5.5 3.5L10 15.5z" fill="currentColor" stroke="none"></path></svg></div>
+            <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:var(--ink);">Flux en direct</div>
+            <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">Flux vidéo drone temps réel avec superposition HUD de vol.</div>
+          </button>
+          <button onClick="{{ goDetect }}" style="text-align:left; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px;" style-hover="border-color:var(--green)">
+            <div style="width:44px; height:44px; border-radius:11px; background:rgba(47,143,91,.12); color:var(--green-ink); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="4 3"></rect><circle cx="12" cy="12" r="3.2"></circle></svg></div>
+            <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:var(--ink);">Détection YOLO</div>
+            <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">Le même flux passé dans le modèle de détection — cadres personnes & confiance.</div>
+          </button>
+          <button onClick="{{ goGis }}" style="text-align:left; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px;" style-hover="border-color:var(--green)">
+            <div style="width:44px; height:44px; border-radius:11px; background:rgba(47,143,91,.12); color:var(--green-ink); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg></div>
+            <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:var(--ink);">Carte SIG</div>
+            <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">Position du drone et couches géospatiales sur fond cartographique.</div>
+          </button>
+          <button onClick="{{ goPath }}" style="text-align:left; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px;" style-hover="border-color:var(--green)">
+            <div style="width:44px; height:44px; border-radius:11px; background:rgba(47,143,91,.12); color:var(--green-ink); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="5.5" r="2.5"></circle><path d="M5.5 16C5.5 10 18.5 12 18.5 8"></path></svg></div>
+            <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:var(--ink);">Planificateur</div>
+            <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">Itinéraire le plus court du drone vers la zone d'impact la plus probable.</div>
+          </button>
+          <button onClick="{{ goOverview }}" style="text-align:left; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px;" style-hover="border-color:var(--green)">
+            <div style="width:44px; height:44px; border-radius:11px; background:rgba(47,143,91,.12); color:var(--green-ink); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg></div>
+            <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:var(--ink);">Vue d'ensemble</div>
+            <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">Tous les flux, la carte et les détections sur un seul écran.</div>
+          </button>
+          <div style="background:var(--panel-2); border:1px dashed var(--line-2); border-radius:14px; padding:22px; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.08em; color:var(--ink-soft); margin-bottom:8px;">ZONE CIBLE</div>
+            <div style="font-weight:600; font-size:14px; color:var(--ink);">{{ targetZone }}</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ===== OVERVIEW ===== -->
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ false }}">
+      <div style="display:grid; grid-template-columns:repeat(12,1fr); gap:16px; max-width:1500px;">
+
+        <!-- live mini -->
+        <section style="grid-column:span 5; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px;">
+            <span style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft);">FLUX EN DIRECT · CAM-1</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; font:600 10px/1 'IBM Plex Mono',monospace; color:var(--red);"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);animation:recblink 1.4s infinite;"></span>REC</span>
+          </div>
+          <div style="position:relative; aspect-ratio:16/9; margin:0 14px 14px; border-radius:8px; overflow:hidden; background:#000; flex:none;">
+            <img src="/raw" alt="flux en direct" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;">
+          </div>
+        </section>
+
+        <!-- detection mini -->
+        <section style="grid-column:span 4; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px;">
+            <span style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft);">DÉTECTION YOLO</span>
+            <span style="font:600 11px/1 'IBM Plex Mono',monospace; color:var(--green-ink);">{{ detCountStr }} pers.</span>
+          </div>
+          <div style="position:relative; aspect-ratio:16/9; margin:0 14px 14px; border-radius:8px; overflow:hidden; background:#000; flex:none;">
+            <img src="{{ detectSrc }}" alt="detection" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;">
+          </div>
+        </section>
+
+        <!-- telemetry -->
+        <section style="grid-column:span 3; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+          <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:14px;">TÉLÉMÉTRIE</div>
+          <div style="display:flex; flex-direction:column; gap:13px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="color:var(--ink-soft); font-size:12px;">Altitude</span><span style="font:600 16px/1 'IBM Plex Mono',monospace;">{{ altStr }}</span></div>
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="color:var(--ink-soft); font-size:12px;">Vitesse sol</span><span style="font:600 16px/1 'IBM Plex Mono',monospace;">{{ speedStr }}</span></div>
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="color:var(--ink-soft); font-size:12px;">Cap</span><span style="font:600 16px/1 'IBM Plex Mono',monospace;">{{ headingStr }}</span></div>
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="color:var(--ink-soft); font-size:12px;">Batterie</span><span style="font:600 16px/1 'IBM Plex Mono',monospace;">{{ batteryStr }}</span></div>
+          </div>
+        </section>
+
+        <!-- map mini -->
+        <section style="grid-column:span 8; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px;">
+            <span style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft);">SIG · POSITION & TRAJET</span>
+            <span style="font:600 11px/1 'IBM Plex Mono',monospace; color:var(--brown);">{{ pathModeLabel }}</span>
+          </div>
+          <div style="position:relative; height:300px; margin:0 14px 14px; border-radius:8px; overflow:hidden; border:1px solid var(--line); {{ mapBgStyle }}">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%; overflow:visible;">
+              <polyline points="{{ altPoints }}" fill="none" stroke="var(--ink-faint)" stroke-width="0.6" stroke-dasharray="2 2" opacity="0.6"></polyline>
+              <polyline points="{{ pathPoints }}" fill="none" stroke="var(--brown)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 2.4" style="animation:dash 1.4s linear infinite;"></polyline>
+            </svg>
+            <div style="{{ targetMarkerStyle }}"><div style="position:absolute; inset:-7px; border:2px solid var(--red); border-radius:50%; animation:ringpulse 2.2s ease-out infinite;"></div></div>
+            <div style="{{ droneMarkerStyle }}"><div style="position:absolute; left:50%; top:50%; width:14px; height:14px; border-radius:50%; background:var(--green); transform:translate(-50%,-50%); animation:dronepulse 2s ease-out infinite;"></div></div>
+            <div style="position:absolute; left:10px; bottom:9px; font:500 9px/1 'IBM Plex Mono',monospace; color:#4f5b50; background:rgba(255,255,255,.78); padding:4px 7px; border-radius:5px;">{{ coords }}</div>
+          </div>
+        </section>
+
+        <!-- detection list -->
+        <section style="grid-column:span 4; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; display:flex; flex-direction:column;">
+          <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:12px;">DÉTECTIONS</div>
+          <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+            <sc-for list="{{ detLog }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:10px; padding:8px 6px; border-bottom:1px solid var(--line);">
+                <span style="{{ r.dotStyle }}"></span>
+                <span style="font:600 12px/1 'IBM Plex Mono',monospace;">{{ r.id }}</span>
+                <span style="color:var(--ink-soft); font-size:12px;">{{ r.cls }}</span>
+                <span style="margin-left:auto; font:600 12px/1 'IBM Plex Mono',monospace; color:{{ r.confColor }};">{{ r.confStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- mission strip -->
+        <section style="grid-column:span 12; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 18px; display:flex; align-items:center; gap:30px;">
+          <div><div style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); letter-spacing:.1em; margin-bottom:6px;">MISSION</div><div style="font:600 14px/1 'IBM Plex Mono',monospace;">OP-2261 · SURVEIL</div></div>
+          <div style="width:1px; height:30px; background:var(--line);"></div>
+          <div><div style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); letter-spacing:.1em; margin-bottom:6px;">ZONE CIBLE</div><div style="font-weight:600; font-size:14px;">{{ targetZone }}</div></div>
+          <div style="width:1px; height:30px; background:var(--line);"></div>
+          <div><div style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); letter-spacing:.1em; margin-bottom:6px;">DISTANCE</div><div style="font:600 14px/1 'IBM Plex Mono',monospace;">{{ routeDist }}</div></div>
+          <div style="width:1px; height:30px; background:var(--line);"></div>
+          <div><div style="font:500 10px/1 'IBM Plex Mono',monospace; color:var(--ink-faint); letter-spacing:.1em; margin-bottom:6px;">DÉLAI</div><div style="font:600 14px/1 'IBM Plex Mono',monospace;">{{ routeEta }}</div></div>
+          <div style="margin-left:auto; display:inline-flex; align-items:center; gap:8px; background:rgba(191,67,46,.1); color:var(--red); padding:8px 13px; border-radius:8px; font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.05em;"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);"></span>{{ riskProb }} PROB. IMPACT</div>
+        </section>
+      </div>
+      </sc-if>
+
+      <!-- ===== LIVE FEED ===== -->
+      <sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:16px; height:100%; max-width:1500px;">
+        <section style="flex:1; min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; display:flex; flex-direction:column;">
+          <div style="position:relative; flex:1; border-radius:9px; overflow:hidden; background:#000; min-height:380px;">
+            <!-- Flux camera en direct : propre, sans superposition -->
+            <img src="/raw" alt="flux en direct" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;">
+          </div>
+          <!-- transport -->
+          <div style="display:flex; align-items:center; gap:14px; padding-top:14px;">
+            <button onClick="{{ togglePlay }}" style="width:42px; height:42px; border-radius:50%; border:none; background:var(--green); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none;">
+              <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg></sc-if>
+              <sc-if value="{{ paused }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"></path></svg></sc-if>
+            </button>
+            <div style="flex:1; height:5px; background:var(--line); border-radius:4px; position:relative;"><div style="position:absolute; left:0; top:0; bottom:0; width:64%; background:var(--green); border-radius:4px;"></div><div style="position:absolute; left:64%; top:50%; width:13px; height:13px; border-radius:50%; background:#fff; border:2px solid var(--green); transform:translate(-50%,-50%);"></div></div>
+            <span style="font:600 12px/1 'IBM Plex Mono',monospace; color:var(--ink-soft);">04:12 / DIRECT</span>
+          </div>
+        </section>
+
+        <aside style="width:290px; flex:none; display:flex; flex-direction:column; gap:14px;">
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">CAMÉRA</div>
+            <label style="display:block; font-size:11px; color:var(--ink-soft); margin-bottom:6px;">Source</label>
+            <select style="width:100%; padding:9px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--panel-2); color:var(--ink); font-size:13px; margin-bottom:13px;"><option>CAM-1 · EO Wide</option><option>CAM-2 · Thermal IR</option><option>CAM-3 · Zoom 30×</option></select>
+            <label style="display:block; font-size:11px; color:var(--ink-soft); margin-bottom:6px;">Résolution</label>
+            <select style="width:100%; padding:9px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--panel-2); color:var(--ink); font-size:13px;"><option>2160p · 30fps</option><option>1080p · 60fps</option><option>720p · 120fps</option></select>
+          </div>
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">ÉTAT DU FLUX</div>
+            <div style="display:flex; flex-direction:column; gap:11px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Débit</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">18.4 Mbps</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Latence</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">112 ms</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Perdus</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">0.2%</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Codec</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">H.265</span></div>
+            </div>
+          </div>
+          <div style="background:var(--panel-2); border:1px dashed var(--line-2); border-radius:12px; padding:14px; font:500 11px/1.6 'IBM Plex Mono',monospace; color:var(--ink-soft);">Connectez votre flux en direct pour remplacer l'espace réservé.</div>
+        </aside>
+      </div>
+      </sc-if>
+
+      <!-- ===== DETECTION ===== -->
+      <sc-if value="{{ isDetect }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:16px; height:100%; max-width:1500px;">
+        <section style="flex:1; min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; display:flex; flex-direction:column;">
+          <div style="position:relative; flex:1; border-radius:9px; overflow:hidden; background:#000; min-height:380px;">
+            <!-- Flux YOLO : seuls les cadres du modele apparaissent (dessines par app.py). src bascule via le bouton "Afficher les cadres". -->
+            <img src="{{ detectSrc }}" alt="detection" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;">
+          </div>
+          </div>
+        </section>
+
+        <aside style="width:300px; flex:none; display:flex; flex-direction:column; gap:14px; overflow:auto;">
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">MODÈLE</div>
+            <select value="{{ model }}" onChange="{{ setModel }}" style="width:100%; padding:9px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--panel-2); color:var(--ink); font-size:13px; margin-bottom:16px;"><option>Mon modele (best.pt)</option><option>YOLOv8n</option><option>YOLOv8m</option><option>YOLOv8x</option><option>YOLOv11m</option></select>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;"><label style="font-size:12px; color:var(--ink-soft);">Seuil de confiance</label><span style="font:600 13px/1 'IBM Plex Mono',monospace; color:var(--green-ink);">{{ confPct }}</span></div>
+            <input type="range" min="0" max="1" step="0.01" value="{{ conf }}" onInput="{{ setConf }}" style="width:100%; margin-bottom:16px;">
+
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:13px;">Afficher les cadres</span>
+              <button onClick="{{ toggleBoxes }}" style="{{ boxToggle.track }}"><span style="{{ boxToggle.knob }}"></span></button>
+            </div>
+          </div>
+
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">INFÉRENCE</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div><div style="font:700 22px/1 'IBM Plex Mono',monospace;">{{ detCountStr }}</div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">personnes</div></div>
+              <div><div style="font:700 22px/1 'IBM Plex Mono',monospace;">{{ fpsStr }}</div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">fps</div></div>
+              <div><div style="font:700 22px/1 'IBM Plex Mono',monospace;">{{ latStr }}<span style="font-size:13px;">ms</span></div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">latence</div></div>
+              <div><div style="font:700 22px/1 'IBM Plex Mono',monospace;">{{ avgConfStr }}</div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">conf. moy.</div></div>
+            </div>
+          </div>
+
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; flex:1;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:10px;">JOURNAL DÉTECTION</div>
+            <sc-for list="{{ detLog }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:9px; padding:8px 4px; border-bottom:1px solid var(--line);">
+                <span style="{{ r.dotStyle }}"></span>
+                <span style="font:600 12px/1 'IBM Plex Mono',monospace;">{{ r.id }}</span>
+                <span style="color:var(--ink-soft); font-size:12px;">{{ r.cls }}</span>
+                <span style="margin-left:auto; font:600 12px/1 'IBM Plex Mono',monospace; color:{{ r.confColor }};">{{ r.confStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </aside>
+      </div>
+      </sc-if>
+
+      <!-- ===== GIS MAP ===== -->
+      <sc-if value="{{ isGis }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:16px; height:100%; max-width:1600px;">
+        <section style="flex:1; min-width:0; position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line); {{ mapBgStyle }}">
+          <sc-if value="{{ layers.nofly }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute; left:9%; top:11%; width:21%; height:21%; background:repeating-linear-gradient(45deg,rgba(191,67,46,.12),rgba(191,67,46,.12) 6px,transparent 6px,transparent 12px); border:1.5px dashed var(--red); border-radius:6px;"><span style="position:absolute; top:5px; left:7px; font:600 9px/1 'IBM Plex Mono',monospace; color:var(--red);">INTERDIT</span></div>
+          </sc-if>
+          <sc-if value="{{ layers.risk }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ risk1Style }}"></div>
+            <div style="{{ risk2Style }}"></div>
+            <div style="{{ risk3Style }}"></div>
+          </sc-if>
+          <sc-if value="{{ layers.sensors }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ sensor1Style }}"></div><div style="{{ sensor2Style }}"></div><div style="{{ sensor3Style }}"></div>
+          </sc-if>
+          <sc-if value="{{ layers.waypoints }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ wp1Style }}"></div><div style="{{ wp2Style }}"></div>
+            <div style="{{ targetMarkerStyle }}"><div style="position:absolute; inset:-7px; border:2px solid var(--red); border-radius:50%; animation:ringpulse 2.2s ease-out infinite;"></div></div>
+          </sc-if>
+          <sc-if value="{{ layers.drone }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ droneMarkerStyle }}"><div style="position:absolute; left:50%; top:50%; width:14px; height:14px; border-radius:50%; background:var(--green); transform:translate(-50%,-50%); animation:dronepulse 2s ease-out infinite;"></div></div>
+          </sc-if>
+          <div style="position:absolute; right:14px; top:14px; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:9px; overflow:hidden;">
+            <button style="width:36px; height:36px; border:none; background:transparent; font-size:18px; cursor:pointer; color:var(--ink);">+</button>
+            <div style="height:1px; background:var(--line);"></div>
+            <button style="width:36px; height:36px; border:none; background:transparent; font-size:18px; cursor:pointer; color:var(--ink);">−</button>
+          </div>
+          <div style="position:absolute; left:12px; bottom:11px; font:500 10px/1 'IBM Plex Mono',monospace; color:#465249; background:rgba(255,255,255,.85); padding:5px 9px; border-radius:6px;">{{ coords }} · ZOOM 15</div>
+        </section>
+
+        <aside style="width:280px; flex:none; display:flex; flex-direction:column; gap:14px;">
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:6px;">COUCHES CARTE</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:9px; font-size:13px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--green);"></span>Position drone</span><button onClick="{{ tDrone }}" style="{{ layerUI.drone.track }}"><span style="{{ layerUI.drone.knob }}"></span></button></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:9px; font-size:13px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--brown);"></span>Points & cible</span><button onClick="{{ tWaypoints }}" style="{{ layerUI.waypoints.track }}"><span style="{{ layerUI.waypoints.knob }}"></span></button></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:9px; font-size:13px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--red);"></span>Zones de risque</span><button onClick="{{ tRisk }}" style="{{ layerUI.risk.track }}"><span style="{{ layerUI.risk.knob }}"></span></button></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:9px; font-size:13px;"><span style="width:10px;height:10px;border:1.5px dashed var(--red);border-radius:2px;"></span>Zones interdites</span><button onClick="{{ tNofly }}" style="{{ layerUI.nofly.track }}"><span style="{{ layerUI.nofly.knob }}"></span></button></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0;"><span style="display:flex; align-items:center; gap:9px; font-size:13px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--amber);"></span>Capteurs au sol</span><button onClick="{{ tSensors }}" style="{{ layerUI.sensors.track }}"><span style="{{ layerUI.sensors.knob }}"></span></button></div>
+          </div>
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">DRONE</div>
+            <div style="display:flex; flex-direction:column; gap:11px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Lat</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">34.0151°N</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Lon</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">118.4912°W</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Altitude</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">{{ altStr }}</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--ink-soft);">Cap</span><span style="font:600 13px/1 'IBM Plex Mono',monospace;">{{ headingStr }}</span></div>
+            </div>
+          </div>
+          <div style="background:var(--panel-2); border:1px dashed var(--line-2); border-radius:12px; padding:14px; font:500 11px/1.6 'IBM Plex Mono',monospace; color:var(--ink-soft);">Remplacez le fond temporaire par votre couche SIG / GeoJSON.</div>
+        </aside>
+      </div>
+      </sc-if>
+
+      <!-- ===== PATH PLANNER ===== -->
+      <sc-if value="{{ isPath }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:16px; height:100%; max-width:1600px;">
+        <section style="flex:1; min-width:0; position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line); {{ mapBgStyle }}">
+          <div style="{{ risk1Style }}"></div><div style="{{ risk2Style }}"></div><div style="{{ risk3Style }}"></div>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%; overflow:visible;">
+            <polyline points="{{ altPoints }}" fill="none" stroke="var(--ink-faint)" stroke-width="0.7" stroke-dasharray="2 2" opacity="0.55"></polyline>
+            <polyline points="{{ pathPoints }}" fill="none" stroke="var(--brown)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 2.4" style="animation:dash 1.4s linear infinite;"></polyline>
+          </svg>
+          <div style="{{ wp1Style }}"></div><div style="{{ wp2Style }}"></div>
+          <div style="{{ targetMarkerStyle }}"><div style="position:absolute; inset:-9px; border:2px solid var(--red); border-radius:50%; animation:ringpulse 2.2s ease-out infinite;"></div><div style="position:absolute; left:14px; top:-4px; white-space:nowrap; font:600 10px/1.4 'IBM Plex Mono',monospace; color:var(--red); background:rgba(255,255,255,.9); padding:4px 7px; border-radius:5px;">CIBLE · P={{ riskProbNum }}</div></div>
+          <div style="{{ droneMarkerStyle }}"><div style="position:absolute; left:50%; top:50%; width:14px; height:14px; border-radius:50%; background:var(--green); transform:translate(-50%,-50%); animation:dronepulse 2s ease-out infinite;"></div><div style="position:absolute; left:14px; top:-4px; white-space:nowrap; font:600 10px/1 'IBM Plex Mono',monospace; color:var(--hero-1); background:rgba(255,255,255,.9); padding:4px 7px; border-radius:5px;">DRONE</div></div>
+          <div style="position:absolute; left:12px; bottom:11px; font:500 10px/1 'IBM Plex Mono',monospace; color:#465249; background:rgba(255,255,255,.85); padding:5px 9px; border-radius:6px;">{{ coords }}</div>
+        </section>
+
+        <aside style="width:300px; flex:none; display:flex; flex-direction:column; gap:14px;">
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:11px;">MODE TRAJET</div>
+            <div style="display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:3px;">
+              <button onClick="{{ modeShortest }}" style="{{ modeStyle.shortest }}">Le plus court</button>
+              <button onClick="{{ modeSafest }}" style="{{ modeStyle.safest }}">Le plus sûr</button>
+            </div>
+          </div>
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:12px;">ZONE CIBLE</div>
+            <div style="font-weight:600; font-size:14px; margin-bottom:4px;">{{ targetZone }}</div>
+            <div style="display:inline-flex; align-items:center; gap:7px; background:rgba(191,67,46,.1); color:var(--red); padding:6px 11px; border-radius:7px; font:600 11px/1 'IBM Plex Mono',monospace;">PROBABILITÉ D'IMPACT {{ riskProb }}</div>
+          </div>
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">TRAJET</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <div><div style="font:700 20px/1 'IBM Plex Mono',monospace;">{{ routeDist }}</div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">distance</div></div>
+              <div><div style="font:700 20px/1 'IBM Plex Mono',monospace;">{{ routeEta }}</div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">DÉLAI</div></div>
+              <div><div style="font:700 20px/1 'IBM Plex Mono',monospace;">{{ routeWp }}</div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">points</div></div>
+              <div><div style="font:700 20px/1 'IBM Plex Mono',monospace;">{{ routeClear }}</div><div style="font-size:11px; color:var(--ink-soft); margin-top:3px;">marge min.</div></div>
+            </div>
+          </div>
+          <button onClick="{{ recompute }}" style="margin-top:auto; padding:13px; border:none; border-radius:10px; background:var(--green); color:#fff; font:600 13px/1 'IBM Plex Sans',sans-serif; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;" style-hover="background:var(--green-ink)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v6h-6"></path></svg>
+            Recalculer le trajet
+          </button>
+        </aside>
+      </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;slate&quot;,&quot;field&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;callSign&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;HAWK-04&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;targetZone&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Secteur 7 — Zone civile&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef = React.createRef();
+
+    // --- Dark-mode topographic texture: faint contour lines baked into --bg ---
+    var topoSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'>"+
+      "<g fill='none' stroke='#1d2917' stroke-width='1.1' stroke-opacity='0.6'>"+
+        "<path d='M-60,140 C200,90 380,210 620,170 C840,134 1010,250 1280,210'/>"+
+        "<path d='M-60,212 C200,165 380,286 620,246 C840,210 1010,322 1280,286'/>"+
+        "<path d='M-60,300 C220,250 420,360 660,322 C880,288 1040,392 1280,360'/>"+
+        "<path d='M-60,470 C220,520 430,420 660,470 C880,516 1050,430 1280,475'/>"+
+        "<path d='M-60,558 C220,608 430,512 660,560 C880,606 1050,520 1280,565'/>"+
+        "<path d='M-60,648 C220,698 430,604 660,650 C880,694 1050,612 1280,655'/>"+
+        "<ellipse cx='352' cy='402' rx='122' ry='80'/>"+
+        "<ellipse cx='352' cy='402' rx='80' ry='50'/>"+
+        "<ellipse cx='936' cy='560' rx='152' ry='94'/>"+
+        "<ellipse cx='936' cy='560' rx='100' ry='60'/>"+
+        "<ellipse cx='936' cy='560' rx='54' ry='30'/>"+
+      "</g></svg>";
+    var topo = 'url("data:image/svg+xml,'+encodeURIComponent(topoSvg).replace(/'/g,'%27')+'")';
+
+    this.THEMES = {
+      light: { '--bg':'#f0eee7','--panel':'#ffffff','--panel-2':'#faf8f3','--ink':'#1d1b16','--ink-soft':'#6e685c','--ink-faint':'#a39c8d','--line':'#e7e2d8','--line-2':'#d8d2c5','--green':'#2f8f5b','--green-ink':'#216a44','--red':'#bf432e','--brown':'#876841','--amber':'#a9772a','--hero-1':'#216a44','--hero-2':'#2f8f5b','--hero-3':'#3aa56b','--hero-title':'#ffffff' },
+      slate: { '--bg':'#0d100c '+topo+' center / cover no-repeat','--panel':'#151a12','--panel-2':'#1c2218','--ink':'#e9efe1','--ink-soft':'#9aab94','--ink-faint':'#62705a','--line':'#283021','--line-2':'#38442d','--green':'#57c47e','--green-ink':'#85d89c','--red':'#e67c61','--brown':'#c6a36b','--amber':'#d9b24e','--hero-1':'#143a27','--hero-2':'#1d5035','--hero-3':'#266040','--hero-title':'#9fe0b0' },
+      field: { '--bg':'#ece3d3','--panel':'#fbf6ea','--panel-2':'#f3ebda','--ink':'#2a2317','--ink-soft':'#766a54','--ink-faint':'#a89b80','--line':'#e0d5c0','--line-2':'#cdc1a8','--green':'#3a865a','--green-ink':'#2a6a43','--red':'#b6492f','--brown':'#7d5a36','--amber':'#a4742a','--hero-1':'#2a6a43','--hero-2':'#3a865a','--hero-3':'#3aa56b','--hero-title':'#ffffff' }
+    };
+    this.baseDet = [
+      { id:'P-01', x:20, y:46, w:6.5, h:20, conf:0.94 },
+      { id:'P-02', x:39, y:53, w:6,   h:18, conf:0.88 },
+      { id:'P-03', x:57, y:42, w:6,   h:19, conf:0.79 },
+      { id:'P-04', x:70, y:58, w:6.5, h:21, conf:0.66 },
+      { id:'P-05', x:48, y:37, w:5,   h:15, conf:0.54 },
+      { id:'P-06', x:31, y:64, w:6,   h:17, conf:0.43 }
+    ];
+    this.state = {
+      tab:'home', playing:true, now:new Date(),
+      battery:78, alt:124, speed:9.4, signal:92,
+      conf:0.30, model:'Mon modele (best.pt)', showBoxes:true, liveStats:null,
+      layers:{ drone:true, waypoints:true, nofly:true, sensors:true, risk:true },
+      pathMode:'shortest', theme:(props.theme||'light'), tick:0
+    };
+  }
+  componentDidMount(){
+    this.applyTheme(this.state.theme);
+    this.timer = setInterval(()=>this.tick(), 1000);
+    // Recupere les vrais chiffres de detection depuis le backend (app.py /stats)
+    this.statTimer = setInterval(()=>{
+      fetch('/stats').then(r=>r.json())
+        .then(d=>this.setState({liveStats:d}))
+        .catch(()=>{});
+    }, 1000);
+  }
+  componentWillUnmount(){ clearInterval(this.timer); clearInterval(this.statTimer); }
+  tick(){
+    this.setState(s=>{
+      const t = s.tick+1;
+      return {
+        now:new Date(), tick:t,
+        battery:+Math.max(14, s.battery - (s.playing?0.02:0)).toFixed(2),
+        alt:+(124 + Math.sin(t/3)*5 + (Math.random()-0.5)*1.2).toFixed(1),
+        speed:+(9.4 + Math.sin(t/4)*1.6 + (Math.random()-0.5)*0.3).toFixed(1),
+        signal:Math.round(91 + Math.sin(t/5)*5)
+      };
+    });
+  }
+  applyTheme(name){
+    const t = this.THEMES[name] || this.THEMES.light;
+    const el = this.rootRef.current; if(!el) return;
+    Object.entries(t).forEach(([k,v])=>el.style.setProperty(k,v));
+  }
+  setTheme(name){ this.setState({theme:name}); this.applyTheme(name); }
+  setTab(tab){ this.setState({tab}); }
+  toggleBoxes(){ this.setState(s=>({showBoxes:!s.showBoxes})); }
+  toggleLayer(k){ this.setState(s=>({layers:{...s.layers,[k]:!s.layers[k]}})); }
+
+  marker(x,y,opts){
+    const o = opts||{};
+    return { position:'absolute', left:x+'%', top:y+'%', width:(o.size||16)+'px', height:(o.size||16)+'px',
+      transform:'translate(-50%,-50%)', borderRadius:o.square?'3px':'50%',
+      background:o.bg||'transparent', border:o.border||'none', zIndex:o.z||5,
+      boxShadow:o.shadow||'none' };
+  }
+  riskCircle(x,y,d,color){
+    return { position:'absolute', left:x+'%', top:y+'%', width:d+'px', height:d+'px', transform:'translate(-50%,-50%)',
+      borderRadius:'50%', background:'radial-gradient(circle, '+color+' 0%, transparent 70%)', pointerEvents:'none', zIndex:2 };
+  }
+  toggleUI(on){
+    return {
+      track:{ width:'38px', height:'22px', borderRadius:'12px', border:'none', cursor:'pointer', position:'relative', padding:0,
+        background: on?'var(--green)':'var(--line-2)', transition:'background .15s' },
+      knob:{ position:'absolute', top:'3px', left: on?'19px':'3px', width:'16px', height:'16px', borderRadius:'50%',
+        background:'#fff', transition:'left .15s', boxShadow:'0 1px 3px rgba(0,0,0,.25)' }
+    };
+  }
+  segStyle(active){
+    return { flex:1, padding:'8px 12px', border:'none', borderRadius:'7px', cursor:'pointer', fontFamily:'"IBM Plex Sans",sans-serif',
+      fontSize:'12.5px', fontWeight:600, background: active?'var(--panel)':'transparent',
+      color: active?'var(--ink)':'var(--ink-soft)', boxShadow: active?'0 1px 3px rgba(0,0,0,.1)':'none' };
+  }
+  navItemStyle(active){
+    return { display:'flex', alignItems:'center', gap:'11px', width:'100%', padding:'9px 11px', borderRadius:'8px',
+      border:'1px solid '+(active?'var(--line-2)':'transparent'), background: active?'var(--panel-2)':'transparent',
+      color: active?'var(--green-ink)':'var(--ink-soft)', fontFamily:'"IBM Plex Sans",sans-serif', fontSize:'13.5px',
+      fontWeight: active?600:500, cursor:'pointer', textAlign:'left', transition:'all .12s' };
+  }
+  buildMap(){
+    const dark = this.state.theme === 'slate';
+    const key = dark ? 'dark' : 'light';
+    this._mapCache = this._mapCache || {};
+    if(this._mapCache[key]) return this._mapCache[key];
+    const V=[150,320,500,680,860], H=[120,280,460,620];
+    const Vm=[235,410,590,770], Hm=[200,370,540];
+    let roads='';
+    V.forEach(x=>roads+="<line x1='"+x+"' y1='0' x2='"+x+"' y2='700'/>");
+    H.forEach(y=>roads+="<line x1='0' y1='"+y+"' x2='1000' y2='"+y+"'/>");
+    roads+="<line x1='30' y1='690' x2='985' y2='110'/>";
+    let minor='';
+    Vm.forEach(x=>minor+="<line x1='"+x+"' y1='0' x2='"+x+"' y2='700'/>");
+    Hm.forEach(y=>minor+="<line x1='0' y1='"+y+"' x2='1000' y2='"+y+"'/>");
+    const c = dark
+      ? { base:'#10140e', block:'#1b2218', water:'#16231c', cas:'#222a1b', road:'#303b27', minor:'#2b341f', minorOp:'0.7' }
+      : { base:'#ece8de', block:'#dde6d4', water:'#d3dde0', cas:'#d6d0c4', road:'#ffffff', minor:'#ffffff', minorOp:'0.85' };
+    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 700'>"+
+      "<rect width='1000' height='700' fill='"+c.base+"'/>"+
+      "<rect x='555' y='40' width='215' height='150' rx='9' fill='"+c.block+"'/>"+
+      "<rect x='65' y='430' width='165' height='195' rx='9' fill='"+c.block+"'/>"+
+      "<path d='M-20,150 C170,118 250,300 470,250 C650,210 770,360 1020,300 L1020,372 C770,432 650,282 470,322 C250,372 170,200 -20,232 Z' fill='"+c.water+"'/>"+
+      "<g stroke='"+c.cas+"' stroke-width='17' stroke-linecap='round'>"+roads+"</g>"+
+      "<g stroke='"+c.road+"' stroke-width='10' stroke-linecap='round'>"+roads+"</g>"+
+      "<g stroke='"+c.minor+"' stroke-width='3.5' opacity='"+c.minorOp+"'>"+minor+"</g>"+
+      "</svg>";
+    this._mapCache[key] = "url(\"data:image/svg+xml,"+encodeURIComponent(svg)+"\")";
+    return this._mapCache[key];
+  }
+
+  renderVals(){
+    const s = this.state;
+    const ls = s.liveStats;          // vrais chiffres du backend (ou null si pas encore recus)
+    const iso = s.now.toISOString();
+    const tab = s.tab;
+    const titles = {
+      home:['Accueil'],
+      overview:['Vue d’ensemble','Conscience situationnelle combinée · tous les flux'],
+      live:['Flux en direct','Vidéo drone temps réel · CAM-1'],
+      detect:['Détection d’objets','Superposition YOLO · détection de personnes'],
+      gis:['Carte SIG','Position géospatiale & couches de données'],
+      path:['Planificateur de trajet','Itinéraire le plus court vers la zone la plus probable']
+    };
+    const targetZone = this.props.targetZone || 'Secteur 7 — Zone civile';
+    const callSign = this.props.callSign || 'HAWK-04';
+
+    // detections
+    const dets = this.baseDet.map((d,i)=>{
+      const dx = Math.sin((s.tick + i*1.7)/2.2)*0.55;
+      const dy = Math.cos((s.tick + i*2.3)/2.6)*0.5;
+      const isTarget = i===0;
+      const color = isTarget ? 'var(--red)' : 'var(--green)';
+      const visible = s.showBoxes && d.conf >= s.conf;
+      return {
+        id:d.id, conf:d.conf, isTarget, color, visible,
+        cls:'Personne', confStr:d.conf.toFixed(2),
+        boxStyle:{ position:'absolute', left:(d.x+dx)+'%', top:(d.y+dy)+'%', width:d.w+'%', height:d.h+'%',
+          border:'2px solid '+color, borderRadius:'3px', background:'transparent', pointerEvents:'none',
+          display: visible?'block':'none', boxShadow:'0 0 0 1px rgba(0,0,0,.3)' },
+        tagStyle:{ position:'absolute', top:'-19px', left:'-1px', fontFamily:'"IBM Plex Mono",monospace', fontSize:'10px',
+          fontWeight:600, background:color, color:'#fff', padding:'2px 6px', borderRadius:'3px', whiteSpace:'nowrap', letterSpacing:'.02em' },
+        tag: (isTarget?'cible ':'pers. ')+d.conf.toFixed(2)
+      };
+    });
+    const visDets = dets.filter(d=>s.showBoxes && d.conf >= s.conf);
+    const logDets = this.baseDet.filter(d=>d.conf >= s.conf).sort((a,b)=>b.conf-a.conf).map((d,i)=>{
+      const isTarget = d.id==='P-01';
+      const cc = d.conf>=0.8?'var(--green-ink)':(d.conf>=0.55?'var(--amber)':'var(--ink-soft)');
+      return { id:d.id, cls:'Personne', confStr:d.conf.toFixed(2), confColor:cc,
+        dotStyle:{ width:'8px', height:'8px', borderRadius:'50%', background:isTarget?'var(--red)':'var(--green)', flex:'none' } };
+    });
+    const avgConf = logDets.length ? (logDets.reduce((a,r)=>a+parseFloat(r.confStr),0)/logDets.length) : 0;
+
+    // JOURNAL : vraies lignes du backend (ls.dets) si dispo, sinon les fausses
+    const confColorFor = (c)=> c>=0.8?'var(--green-ink)':(c>=0.55?'var(--amber)':'var(--ink-soft)');
+    const realLog = (ls && Array.isArray(ls.dets)) ? ls.dets.map((d,i)=>({
+      id:d.id, cls:d.cls, confStr:Number(d.conf).toFixed(2), confColor:confColorFor(d.conf),
+      dotStyle:{ width:'8px', height:'8px', borderRadius:'50%', background:i===0?'var(--red)':'var(--green)', flex:'none' }
+    })) : logDets;
+
+    // path
+    const shortestPts = '24,62 38,54 54,44 70,34';
+    const safestPts = '24,62 30,73 50,66 64,52 70,34';
+    const isShortest = s.pathMode==='shortest';
+    const pathPoints = isShortest ? shortestPts : safestPts;
+    const altPoints  = isShortest ? safestPts : shortestPts;
+
+    return {
+      rootRef:this.rootRef, callSign, targetZone,
+      // nav
+      navStyle:{ home:this.navItemStyle(tab==='home'), overview:this.navItemStyle(tab==='overview'), live:this.navItemStyle(tab==='live'),
+        detect:this.navItemStyle(tab==='detect'), gis:this.navItemStyle(tab==='gis'), path:this.navItemStyle(tab==='path') },
+      goHome:()=>this.setTab('home'),
+      goOverview:()=>this.setTab('overview'), goLive:()=>this.setTab('live'),
+      goDetect:()=>this.setTab('detect'), goGis:()=>this.setTab('gis'), goPath:()=>this.setTab('path'),
+      isHome:tab==='home', isOverview:tab==='overview', isLive:tab==='live', isDetect:tab==='detect', isGis:tab==='gis', isPath:tab==='path',
+      // topbar
+      pageTitle:titles[tab][0], pageSub:titles[tab][1],
+      timeStr:iso.substr(11,8), coords:'34.0151°N  118.4912°W',
+      themeStyle:{ light:this.segStyle(s.theme==='light'), slate:this.segStyle(s.theme==='slate'), field:this.segStyle(s.theme==='field') },
+      themeLight:()=>this.setTheme('light'), themeSlate:()=>this.setTheme('slate'), themeField:()=>this.setTheme('field'),
+      // telemetry
+      batteryStr:Math.round(s.battery)+'%', signalStr:s.signal+'%',
+      altStr:s.alt.toFixed(0)+' m', speedStr:s.speed.toFixed(1)+' m/s', headingStr:'148°',
+      battStyle:{ width:Math.round(s.battery)+'%', height:'100%', background:s.battery<25?'var(--red)':'var(--green)', borderRadius:'4px' },
+      sigStyle:{ width:s.signal+'%', height:'100%', background:'var(--green)', borderRadius:'4px' },
+      // video / detection
+      playing:s.playing, paused:!s.playing, togglePlay:()=>this.setState(p=>({playing:!p.playing})),
+      detBoxes:dets, detLog:realLog,
+      detCountStr: ls ? String(ls.count) : String(visDets.length),
+      avgConfStr:  ls ? Number(ls.avg_conf).toFixed(2) : avgConf.toFixed(2),
+      detectSrc:   s.showBoxes ? '/detect' : '/raw',
+      conf:s.conf, confPct:Math.round(s.conf*100)+'%',
+      setConf:(e)=>{ const v=parseFloat(e.target.value); this.setState({conf:v});
+        clearTimeout(this._confT); this._confT=setTimeout(()=>fetch('/set_conf?v='+v,{method:'POST'}).catch(()=>{}),200); },
+      model:s.model,
+      setModel:(e)=>{ const m=e.target.value; this.setState({model:m});
+        fetch('/set_model?name='+encodeURIComponent(m),{method:'POST'}).catch(()=>{}); },
+      fpsStr: ls ? String(ls.fps) : String(28 + (s.tick%3)),
+      latStr: ls ? String(ls.latency_ms) : '33',
+      boxToggle:this.toggleUI(s.showBoxes), toggleBoxes:()=>this.toggleBoxes(),
+      // map markers
+      mapBgStyle:{ backgroundImage:this.buildMap(), backgroundSize:'cover', backgroundPosition:'center' },
+      droneMarkerStyle:this.marker(24,62,{ size:16, bg:'var(--green)', border:'3px solid #fff', shadow:'0 2px 8px rgba(0,0,0,.3)', z:8 }),
+      targetMarkerStyle:this.marker(70,34,{ size:16, bg:'var(--red)', border:'3px solid #fff', shadow:'0 2px 8px rgba(0,0,0,.3)', z:8 }),
+      wp1Style:this.marker(38,54,{ size:10, bg:'var(--brown)', border:'2px solid #fff', z:6 }),
+      wp2Style:this.marker(54,44,{ size:10, bg:'var(--brown)', border:'2px solid #fff', z:6 }),
+      sensor1Style:this.marker(18,30,{ size:11, bg:'var(--amber)', border:'2px solid #fff', z:6 }),
+      sensor2Style:this.marker(84,60,{ size:11, bg:'var(--amber)', border:'2px solid #fff', z:6 }),
+      sensor3Style:this.marker(46,78,{ size:11, bg:'var(--amber)', border:'2px solid #fff', z:6 }),
+      risk1Style:this.riskCircle(70,34,180,'rgba(191,67,46,.42)'),
+      risk2Style:this.riskCircle(54,46,130,'rgba(169,119,42,.34)'),
+      risk3Style:this.riskCircle(40,26,95,'rgba(135,104,65,.30)'),
+      // layers
+      layers:s.layers,
+      layerUI:{ drone:this.toggleUI(s.layers.drone), waypoints:this.toggleUI(s.layers.waypoints),
+        risk:this.toggleUI(s.layers.risk), nofly:this.toggleUI(s.layers.nofly), sensors:this.toggleUI(s.layers.sensors) },
+      tDrone:()=>this.toggleLayer('drone'), tWaypoints:()=>this.toggleLayer('waypoints'),
+      tRisk:()=>this.toggleLayer('risk'), tNofly:()=>this.toggleLayer('nofly'), tSensors:()=>this.toggleLayer('sensors'),
+      // path
+      pathPoints, altPoints, pathModeLabel:isShortest?'TRAJET LE PLUS COURT':'TRAJET LE PLUS SÛR',
+      modeStyle:{ shortest:this.segStyle(isShortest), safest:this.segStyle(!isShortest) },
+      modeShortest:()=>this.setState({pathMode:'shortest'}), modeSafest:()=>this.setState({pathMode:'safest'}),
+      recompute:()=>this.setState(p=>({pathMode:p.pathMode==='shortest'?'safest':'shortest'})),
+      routeDist:isShortest?'1.84 km':'2.37 km', routeEta:isShortest?'3m 12s':'4m 05s',
+      routeWp:isShortest?'2':'3', routeClear:isShortest?'45 m':'120 m',
+      riskProb:isShortest?'0.86':'0.86', riskProbNum:'0.86'
+    };
+  }
+}
+</script>
+</body>
+</html>
