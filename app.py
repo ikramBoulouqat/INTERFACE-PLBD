@@ -14,15 +14,21 @@ Lancer :  python app.py   puis ouvrir  http://localhost:5000
 
 import os
 import time
+import base64
 import threading
 
 import cv2
+import numpy as np
 from flask import Flask, Response, send_from_directory, jsonify, request
 from ultralytics import YOLO
 
+# Segmentation U-Net des zones de danger (chargement paresseux : si les poids
+# ou torch manquent, le reste de l'interface tourne quand meme).
+import segmentation as seg
+
 # ----------------------- CONFIG (a editer) -----------------------
 STREAM_URL = "http://192.168.43.111:81/stream"
-MY_MODEL   = r"C:\Users\lenovo\Documents\code\plbd\best.pt"
+MY_MODEL   = "yolov8n.pt"
 
 CONF   = 0.30     # seuil de confiance de depart (le curseur le modifie ensuite)
 IMGSZ  = 640      # baisser a 416 si le CPU rame
@@ -37,7 +43,7 @@ DASHBOARD_FILE = "index2.html"
 #   Modeles COCO officiels : 0 person             -> [0]
 #   (Les poids officiels se telechargent tout seuls au 1er usage : internet requis.)
 MODELS = {
-    "Mon modele (best.pt)": {"weights": MY_MODEL,     "classes": [0, 1]},
+    "Mon modele (best.pt)": {"weights": MY_MODEL,     "classes": [0]},
     "YOLOv8n":              {"weights": "yolov8n.pt", "classes": [0]},
     "YOLOv8m":              {"weights": "yolov8m.pt", "classes": [0]},
     "YOLOv8x":              {"weights": "yolov8x.pt", "classes": [0]},
@@ -61,6 +67,10 @@ latest_raw = None
 latest_annotated = None
 stats = {"count": 0, "fps": 0.0, "avg_conf": 0.0, "latency_ms": 0.0,
          "model": current_name, "conf": CONF, "dets": []}
+
+# --- segmentation (overlay + stats live, protege par seg_lock) ---
+seg_lock = threading.Lock()
+latest_seg_stats = {"ready": False, "classes": [], "error": None}
 
 
 def cls_name(names, cid):
@@ -167,6 +177,98 @@ def raw():
 def detect():
     return Response(mjpeg(lambda: latest_annotated),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+# ------------------------ SEGMENTATION U-NET ------------------------
+SEG_PERIOD = 0.7   # intervalle min entre deux inferences U-Net (s) -> limite le CPU
+
+
+def segment_mjpeg():
+    """Segmente le flux en direct a la demande (uniquement quand l'onglet est ouvert).
+    Met a jour latest_seg_stats pour la legende dynamique."""
+    global latest_seg_stats
+    last_overlay = None
+    last_run = 0.0
+    while True:
+        with buf_lock:
+            frame = None if latest_raw is None else latest_raw.copy()
+
+        if frame is None:
+            # pas de flux : on montre un message au lieu de planter
+            ph = seg.placeholder_frame(
+                "Flux camera indisponible.\nConnectez l'ESP32-CAM\nou utilisez le mode Image.")
+            ok, jpg = cv2.imencode(".jpg", ph)
+            if ok:
+                yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
+                       + jpg.tobytes() + b"\r\n")
+            time.sleep(0.5)
+            continue
+
+        now = time.time()
+        if now - last_run >= SEG_PERIOD or last_overlay is None:
+            overlay, sstats = seg.segment_frame(frame)
+            last_run = now
+            if overlay is None:
+                msg = seg.load_error() or "Modele non charge"
+                overlay = seg.placeholder_frame("Segmentation indisponible :\n" + msg)
+                with seg_lock:
+                    latest_seg_stats = {"ready": False, "classes": [], "error": msg}
+            else:
+                with seg_lock:
+                    latest_seg_stats = {"ready": True, "classes": sstats, "error": None}
+            last_overlay = overlay
+
+        ok, jpg = cv2.imencode(".jpg", last_overlay)
+        if ok:
+            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
+                   + jpg.tobytes() + b"\r\n")
+        time.sleep(0.05)
+
+
+@app.route("/segment")
+def segment():
+    """Flux MJPEG segmente (zones de danger) du direct."""
+    return Response(segment_mjpeg(),
+                    mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.route("/segment_stats")
+def segment_stats_route():
+    """Pourcentages par classe de danger du dernier overlay live (JSON)."""
+    with seg_lock:
+        return jsonify(latest_seg_stats)
+
+
+@app.route("/segment_image", methods=["POST"])
+def segment_image():
+    """Segmente une image uploadee. Renvoie l'overlay (PNG base64) + les classes.
+    Fonctionne meme sans ESP32-CAM -> ideal pour une demo de soutenance."""
+    if "image" not in request.files:
+        return jsonify({"ok": False, "error": "aucun fichier 'image'"}), 400
+
+    data = np.frombuffer(request.files["image"].read(), np.uint8)
+    bgr = cv2.imdecode(data, cv2.IMREAD_COLOR)
+    if bgr is None:
+        return jsonify({"ok": False, "error": "image illisible"}), 400
+
+    overlay, sstats = seg.segment_frame(bgr)
+    if overlay is None:
+        return jsonify({"ok": False, "error": seg.load_error() or "modele non charge"}), 503
+
+    ok, png = cv2.imencode(".png", overlay)
+    if not ok:
+        return jsonify({"ok": False, "error": "encodage PNG echoue"}), 500
+
+    b64 = base64.b64encode(png.tobytes()).decode("ascii")
+    return jsonify({"ok": True,
+                    "image": "data:image/png;base64," + b64,
+                    "classes": sstats})
+
+
+@app.route("/segment_ready")
+def segment_ready():
+    """Etat du modele de segmentation (pour l'UI)."""
+    return jsonify({"ready": seg.is_ready(), "error": seg.load_error()})
 
 
 @app.route("/stats")

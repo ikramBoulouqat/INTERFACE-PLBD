@@ -70,6 +70,10 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="5.5" r="2.5"></circle><path d="M5.5 16C5.5 10 18.5 12 18.5 8"></path></svg>
         <span>Planificateur</span>
       </button>
+      <button onClick="{{ goSeg }}" style="{{ navStyle.seg }}" style-hover="background:var(--panel-2)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2L3 7v6c0 5 3.8 8 9 9 5.2-1 9-4 9-9V7l-9-5z"></path><path d="M9 12l2 2 4-4"></path></svg>
+        <span>Zones de danger</span>
+      </button>
     </nav>
 
     <div style="margin-top:auto; padding-top:14px;">
@@ -170,6 +174,11 @@
             <div style="width:44px; height:44px; border-radius:11px; background:rgba(47,143,91,.12); color:var(--green-ink); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="5.5" r="2.5"></circle><path d="M5.5 16C5.5 10 18.5 12 18.5 8"></path></svg></div>
             <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:var(--ink);">Planificateur</div>
             <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">Itinéraire le plus court du drone vers la zone d'impact la plus probable.</div>
+          </button>
+          <button onClick="{{ goSeg }}" style="text-align:left; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px;" style-hover="border-color:var(--green)">
+            <div style="width:44px; height:44px; border-radius:11px; background:rgba(191,67,46,.12); color:var(--red); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2L3 7v6c0 5 3.8 8 9 9 5.2-1 9-4 9-9V7l-9-5z"></path><path d="M9 12l2 2 4-4"></path></svg></div>
+            <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:var(--ink);">Zones de danger</div>
+            <div style="font-size:13px; color:var(--ink-soft); line-height:1.5;">Segmentation U-Net du terrain en zones par degré de danger (sans dommage → détruit).</div>
           </button>
           <button onClick="{{ goOverview }}" style="text-align:left; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px;" style-hover="border-color:var(--green)">
             <div style="width:44px; height:44px; border-radius:11px; background:rgba(47,143,91,.12); color:var(--green-ink); display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg></div>
@@ -456,6 +465,64 @@
       </div>
       </sc-if>
 
+      <!-- ===== ZONES DE DANGER (SEGMENTATION U-NET) ===== -->
+      <sc-if value="{{ isSeg }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:16px; height:100%; max-width:1500px;">
+        <section style="flex:1; min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; display:flex; flex-direction:column;">
+          <!-- bascule Direct / Image -->
+          <div style="display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:3px; margin-bottom:12px; max-width:340px;">
+            <button onClick="{{ segModeLive }}" style="{{ segModeStyle.live }}">Flux en direct</button>
+            <button onClick="{{ segModeUpload }}" style="{{ segModeStyle.upload }}">Image</button>
+          </div>
+
+          <div style="position:relative; flex:1; border-radius:9px; overflow:hidden; background:#000; min-height:380px; display:flex; align-items:center; justify-content:center;">
+            <!-- mode direct : flux MJPEG segmente -->
+            <sc-if value="{{ segIsLive }}" hint-placeholder-val="{{ true }}">
+              <img src="/segment" alt="zones de danger" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;">
+            </sc-if>
+            <!-- mode image : resultat de l'upload -->
+            <sc-if value="{{ segIsUpload }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ segHasResult }}" hint-placeholder-val="{{ true }}">
+                <img src="{{ segImgSrc }}" alt="zones de danger" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;">
+              </sc-if>
+              <sc-if value="{{ segNoResult }}" hint-placeholder-val="{{ false }}">
+                <div style="color:var(--ink-faint); font:500 13px/1.6 'IBM Plex Mono',monospace; text-align:center; padding:24px;">{{ segHint }}</div>
+              </sc-if>
+            </sc-if>
+          </div>
+        </section>
+
+        <aside style="width:300px; flex:none; display:flex; flex-direction:column; gap:14px; overflow:auto;">
+          <!-- import image -->
+          <sc-if value="{{ segIsUpload }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">IMAGE À ANALYSER</div>
+            <label style="display:block; padding:11px; border:1px dashed var(--line-2); border-radius:9px; background:var(--panel-2); color:var(--ink-soft); font-size:13px; text-align:center; cursor:pointer;">
+              {{ segFileLabel }}
+              <input type="file" accept="image/*" onChange="{{ onSegFile }}" style="display:none;">
+            </label>
+          </div>
+          </sc-if>
+
+          <!-- legende / degre de danger -->
+          <div style="background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;">
+            <div style="font:600 11px/1 'IBM Plex Mono',monospace; letter-spacing:.1em; color:var(--ink-soft); margin-bottom:13px;">DEGRÉ DE DANGER</div>
+            <sc-for list="{{ segLegend }}" as="z" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--line);">
+                <span style="width:13px; height:13px; border-radius:3px; flex:none; background:{{ z.color }};"></span>
+                <span style="font-size:13px; color:var(--ink);">{{ z.name }}</span>
+                <span style="margin-left:auto; font:600 12px/1 'IBM Plex Mono',monospace; color:var(--ink-soft);">{{ z.pctStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- etat modele -->
+          <div style="background:var(--panel-2); border:1px dashed var(--line-2); border-radius:12px; padding:14px; font:500 11px/1.6 'IBM Plex Mono',monospace; color:var(--ink-soft);">{{ segStatus }}</div>
+        </aside>
+      </div>
+      </sc-if>
+
+
     </main>
   </div>
 </div>
@@ -501,7 +568,10 @@ class Component extends DCLogic {
       battery:78, alt:124, speed:9.4, signal:92,
       conf:0.30, model:'Mon modele (best.pt)', showBoxes:true, liveStats:null,
       layers:{ drone:true, waypoints:true, nofly:true, sensors:true, risk:true },
-      pathMode:'shortest', theme:(props.theme||'light'), tick:0
+      pathMode:'shortest', theme:(props.theme||'light'), tick:0,
+      // --- segmentation zones de danger ---
+      segMode:'upload', segImgSrc:null, segUploadClasses:null,
+      segFileName:'', segError:null, segLiveStats:null
     };
   }
   componentDidMount(){
@@ -512,6 +582,12 @@ class Component extends DCLogic {
       fetch('/stats').then(r=>r.json())
         .then(d=>this.setState({liveStats:d}))
         .catch(()=>{});
+      // legende dynamique du flux segmente (seulement quand l'onglet danger est ouvert en direct)
+      if(this.state.tab==='seg' && this.state.segMode==='live'){
+        fetch('/segment_stats').then(r=>r.json())
+          .then(d=>this.setState({segLiveStats:d}))
+          .catch(()=>{});
+      }
     }, 1000);
   }
   componentWillUnmount(){ clearInterval(this.timer); clearInterval(this.statTimer); }
@@ -536,6 +612,21 @@ class Component extends DCLogic {
   setTab(tab){ this.setState({tab}); }
   toggleBoxes(){ this.setState(s=>({showBoxes:!s.showBoxes})); }
   toggleLayer(k){ this.setState(s=>({layers:{...s.layers,[k]:!s.layers[k]}})); }
+
+  // --- segmentation : envoie l'image au backend et recupere l'overlay + les classes ---
+  uploadSegImage(file){
+    if(!file) return;
+    this.setState({segFileName:file.name, segError:'Analyse en cours…', segImgSrc:null, segUploadClasses:null});
+    const fd = new FormData();
+    fd.append('image', file);
+    fetch('/segment_image', {method:'POST', body:fd})
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.ok){ this.setState({segImgSrc:d.image, segUploadClasses:d.classes, segError:null}); }
+        else { this.setState({segError:d.error||'Echec de la segmentation'}); }
+      })
+      .catch(()=>this.setState({segError:'Serveur injoignable'}));
+  }
 
   marker(x,y,opts){
     const o = opts||{};
@@ -608,7 +699,8 @@ class Component extends DCLogic {
       live:['Flux en direct','Vidéo drone temps réel · CAM-1'],
       detect:['Détection d’objets','Superposition YOLO · détection de personnes'],
       gis:['Carte SIG','Position géospatiale & couches de données'],
-      path:['Planificateur de trajet','Itinéraire le plus court vers la zone la plus probable']
+      path:['Planificateur de trajet','Itinéraire le plus court vers la zone la plus probable'],
+      seg:['Zones de danger','Segmentation U-Net · degré de danger par zone']
     };
     const targetZone = this.props.targetZone || 'Secteur 7 — Zone civile';
     const callSign = this.props.callSign || 'HAWK-04';
@@ -658,11 +750,14 @@ class Component extends DCLogic {
       rootRef:this.rootRef, callSign, targetZone,
       // nav
       navStyle:{ home:this.navItemStyle(tab==='home'), overview:this.navItemStyle(tab==='overview'), live:this.navItemStyle(tab==='live'),
-        detect:this.navItemStyle(tab==='detect'), gis:this.navItemStyle(tab==='gis'), path:this.navItemStyle(tab==='path') },
+        detect:this.navItemStyle(tab==='detect'), gis:this.navItemStyle(tab==='gis'), path:this.navItemStyle(tab==='path'),
+        seg:this.navItemStyle(tab==='seg') },
       goHome:()=>this.setTab('home'),
       goOverview:()=>this.setTab('overview'), goLive:()=>this.setTab('live'),
       goDetect:()=>this.setTab('detect'), goGis:()=>this.setTab('gis'), goPath:()=>this.setTab('path'),
+      goSeg:()=>this.setTab('seg'),
       isHome:tab==='home', isOverview:tab==='overview', isLive:tab==='live', isDetect:tab==='detect', isGis:tab==='gis', isPath:tab==='path',
+      isSeg:tab==='seg',
       // topbar
       pageTitle:titles[tab][0], pageSub:titles[tab][1],
       timeStr:iso.substr(11,8), coords:'34.0151°N  118.4912°W',
@@ -713,7 +808,47 @@ class Component extends DCLogic {
       recompute:()=>this.setState(p=>({pathMode:p.pathMode==='shortest'?'safest':'shortest'})),
       routeDist:isShortest?'1.84 km':'2.37 km', routeEta:isShortest?'3m 12s':'4m 05s',
       routeWp:isShortest?'2':'3', routeClear:isShortest?'45 m':'120 m',
-      riskProb:isShortest?'0.86':'0.86', riskProbNum:'0.86'
+      riskProb:isShortest?'0.86':'0.86', riskProbNum:'0.86',
+
+      // ---------- ZONES DE DANGER (segmentation) ----------
+      segModeLive:()=>this.setState({segMode:'live'}),
+      segModeUpload:()=>this.setState({segMode:'upload'}),
+      segModeStyle:{ live:this.segStyle(s.segMode==='live'), upload:this.segStyle(s.segMode==='upload') },
+      segIsLive:s.segMode==='live', segIsUpload:s.segMode==='upload',
+      segHasResult:s.segMode==='upload' && !!s.segImgSrc,
+      segNoResult:s.segMode==='upload' && !s.segImgSrc,
+      segImgSrc:s.segImgSrc,
+      segHint: s.segError ? s.segError : "Importez une image aérienne\npour cartographier les zones de danger.",
+      segFileLabel: s.segFileName ? s.segFileName : "Choisir une image…",
+      onSegFile:(e)=>{ const f=e.target.files && e.target.files[0]; this.uploadSegImage(f); },
+      segLegend: (()=>{
+        const base = [
+          { id:1, name:'Sans dommage',   color:'rgb(76,175,80)'  },
+          { id:2, name:'Dommage léger',  color:'rgb(240,200,60)' },
+          { id:3, name:'Dommage majeur', color:'rgb(240,130,40)' },
+          { id:4, name:'Détruit',        color:'rgb(210,50,50)'  }
+        ];
+        const src = (s.segMode==='live')
+          ? (s.segLiveStats && s.segLiveStats.classes)
+          : s.segUploadClasses;
+        const byId = {};
+        if(Array.isArray(src)) src.forEach(c=>{ byId[c.id]=c; });
+        return base.map(b=>{
+          const d = byId[b.id];
+          return { name:b.name, color:(d&&d.color)||b.color,
+                   pctStr:(d!=null && d.pct!=null) ? (d.pct+' %') : '—' };
+        });
+      })(),
+      segStatus: (()=>{
+        if(s.segMode==='live'){
+          if(s.segLiveStats && s.segLiveStats.error) return 'Modèle : '+s.segLiveStats.error;
+          if(s.segLiveStats && s.segLiveStats.ready) return 'Segmentation du flux en direct active.';
+          return 'En attente du flux / du modèle…';
+        }
+        if(s.segError) return s.segError;
+        if(s.segImgSrc) return 'Segmentation terminée.';
+        return 'Mode image : importez un fichier à analyser.';
+      })()
     };
   }
 }
