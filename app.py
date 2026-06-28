@@ -28,7 +28,8 @@ import segmentation as seg
 
 # ----------------------- CONFIG (a editer) -----------------------
 STREAM_URL = "http://192.168.43.111:81/stream"
-MY_MODEL   = "yolov8n.pt"
+# Cherche best.pt localement ; sinon bascule sur yolov8n (telecharge tout seul).
+MY_MODEL = "best.pt" if os.path.exists("best.pt") else "yolov8n.pt"
 
 CONF   = 0.30     # seuil de confiance de depart (le curseur le modifie ensuite)
 IMGSZ  = 640      # baisser a 416 si le CPU rame
@@ -43,7 +44,7 @@ DASHBOARD_FILE = "index2.html"
 #   Modeles COCO officiels : 0 person             -> [0]
 #   (Les poids officiels se telechargent tout seuls au 1er usage : internet requis.)
 MODELS = {
-    "Mon modele (best.pt)": {"weights": MY_MODEL,     "classes": [0]},
+    "Mon modele (best.pt)": {"weights": MY_MODEL,     "classes": [0, 1]},
     "YOLOv8n":              {"weights": "yolov8n.pt", "classes": [0]},
     "YOLOv8m":              {"weights": "yolov8m.pt", "classes": [0]},
     "YOLOv8x":              {"weights": "yolov8x.pt", "classes": [0]},
